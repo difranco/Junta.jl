@@ -1,0 +1,166 @@
+module Junta
+
+export junta_size_adaptive_simple, check_for_juntas_adaptive_simple
+
+using BitTools
+using Random
+using Combinatorics
+
+function junta_binary_search(f, x, y)
+    # http://www.cs.columbia.edu/~rocco/Public/stoc18.pdf
+    # Input: Query access to f : {0, 1}^n → {0, 1},
+    # and two strings x, y ∈ {0, 1}^n with f(x) ,f(y).
+    # Output: Two strings x′, y′ ∈ {0, 1}^n,
+    # with f(x′), f(y′) and x′ = y′^(i) for some i ∈ diff(x, y).
+    # x^(i) denotes bit string x with bit(s) at position(s) i (or vector I) flipped.
+    # (1) Let B ⊆ [n] be the set such that x = y^(B).
+    # (2) If |B| = 1, return x and y.
+    # (3) Partition (arbitrarily) B into B1 and B2 of size ⌊|B|/2⌋ and ⌈|B|/2⌉,
+    #     respectively.
+    # (4) Query f(x^(B1)).
+    # (5) If f(x) ≠ f(x^(B1)), return BinarySearch(f, x, x^(B1)).
+    # (6) Otherwise, return BinarySearch(f, x^(B1), y).
+
+    @debug "x: $x, y: $y"
+    @debug "fx ≠ fy: $(f(x) ≠ f(y))" # Strangely, this is not always true
+    # Even though this is called from within a conditional on this condition
+    # Used to be an assert which caught it
+    # Happens when the junta includes the last position as in
+    # f = (x::BitVector) -> reduce(xor, x[3:4]) for a 4-dimensional test.
+    # Still apparently works in that case though.
+
+    B = findall(x .⊻ y)
+
+    if length(B) == 1
+        return (x, y)
+    end
+
+    Bpartlen = div(length(shuffle(B)), 2)
+    B1 = B[1:Bpartlen]
+
+    xB1 = invert_at_indices(x, B1)
+
+    if f(xB1) ≠ f(x)
+        return junta_binary_search(f, x, xB1)
+    else
+        return junta_binary_search(f, xB1, y)
+    end
+end
+
+function check_for_juntas_adaptive_simple(
+    f::Function,
+    D::Function,
+    k::Integer,
+    ϵ::Real,
+    dim::Integer,
+    initial_I::Set{Integer} = Set{Integer}(),
+    rng = Random.GLOBAL_RNG
+    )
+    # http://www.cs.columbia.edu/~rocco/Public/stoc18.pdf
+    # Input: Oracle access to a Boolean function f : {0, 1}^n → {0, 1}
+    #  and a probability distribution
+    # D over {0, 1}^n, a positive integer k, and a distance parameter ϵ > 0.
+    # dim, an annotation indicating the input dimension of f and output dim of D
+    # Output: Either “accept” or “reject.”
+    # (1) Set I = ∅. I ⊂ [n] is maintained such that a distinguishing pair
+    #     has been found for each i ∈ I.
+    # (2) Repeat 8(k + 1)/ϵ times:
+    #     (3) Sample x ← D and a subset R of Icomplement uniformly at random.
+    #         It's unclear if this means the elements of Icomplement should be
+    #         sampled uniformly at random to form a subset or the subsets themselves.
+    #         Set y = x^(R).
+    #     (4) If f(x) ≠ f(y), then run the standard binary search on x, y to
+    #         find a distinguishing pair for a new relevant variable i ∈ R ⊆ Ic.
+    #         Set I = I ∪ {i}.
+    #     (5) If |I| > k, then halt and output “reject.”
+    # (6) Halt and output “accept.”
+    #
+    # SimpleDJunta makes O((k/ϵ) + k log n) queries and
+    # always accepts when f is a k-junta.
+    # It rejects with probability at least 2/3
+    # if f is ϵ-far from k-juntas with respect to D.
+
+    I = initial_I
+
+    for i = 1:ceil(8(k + 1) / ϵ)
+        x = D()
+        R = rand(rng, collect(powerset(setdiff(1:dim, I))))
+        @debug "I: $I, R: $R"
+        y = invert_at_indices(x, R)
+
+        @debug "x: $x, y: $y, f(x): $(f(x)), f(y): $(f(y)) R: $R, i: $i"
+
+        if f(x) ≠ f(y)
+            @debug "doing binary search"
+            xs, ys = junta_binary_search(f, x, y)
+            i = findall(xs .⊻ ys)
+            I = union(I, i)
+            if length(I) > k
+                return (false, I)
+            end
+        end
+    end
+
+    return (true, I)
+end
+
+function check_for_juntas_adaptive_simple(f, k, ϵ, dim,
+    initial_I = Set{Integer}(), rng = Random.GLOBAL_RNG)
+    return check_for_juntas_adaptive_simple(
+        f, () -> rbitvec(dim), k, ϵ, dim, initial_I, rng
+    )
+end
+
+iterations_for_error_prob = (x) -> ceil(-log(x) / (log(3)))
+# alg rejects with prob 2/3 each time so 1/3 false neg rate so find (1/3)^y ≤ x
+# to find number of iterations needed to get lower prob of false negative
+
+function check_for_juntas_adaptive_simple(
+    f::Function,
+    k::Integer,
+    ϵ::Real,
+    dim::Integer,
+    error_prob::Real,
+    initial_I::Set{Integer} = Set{Integer}(),
+    rng = Random.GLOBAL_RNG
+    )
+
+    accept = false
+    indices = initial_I
+
+    for i = 1:iterations_for_error_prob(error_prob)
+        (accept, indices) = check_for_juntas_adaptive_simple(
+            f, k, ϵ, dim, indices, rng
+        )
+        if !accept
+            return (accept, indices)
+        end
+    end
+    return (accept, indices)
+end
+
+function junta_size_adaptive_simple(
+    f::Function,
+    ϵ::Real,
+    dim::Integer,
+    error_prob::Real,
+    rng = Random.GLOBAL_RNG
+    )
+    # This variant steps up until it fails the junta test to determine junta size
+    # It passes through the set of indices found so as not to lose the search state
+
+    indices = Set{Integer}()
+
+    for k in 1:dim
+        (accept, indices) = check_for_juntas_adaptive_simple(
+            f, k, ϵ, dim, error_prob / dim, indices
+        )
+        if accept
+            return (k, sort(collect(indices)))
+        end
+    end
+
+    return (dim, sort(collect(indices)))
+end
+
+end # module
