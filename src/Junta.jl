@@ -82,7 +82,7 @@ function check_for_juntas_adaptive_simple(
 
     I = initial_I
 
-    for i = 1:ceil(8(k + 1) / ϵ)
+    for i = 1:Int(cld(8(k + 1), ϵ))
         x = D()
         R = rand(rng, collect(powerset(setdiff(1:dim, I))))
         @debug "I: $I, R: $R"
@@ -111,7 +111,7 @@ function check_for_juntas_adaptive_simple(f, k, ϵ, dim,
     )
 end
 
-@inline iterations_for_error_prob(x) = ceil(-log(x) / (log(3)))
+@inline iterations_for_error_prob(x) = Int(cld(-log(x), (log(3))))
 # alg rejects with prob 2/3 each time so 1/3 false neg rate so find (1/3)^y ≤ x
 # to find number of iterations needed to get lower prob of false negative
 
