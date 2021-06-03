@@ -35,8 +35,8 @@ function junta_binary_search(f, x, y)
         return (x, y)
     end
 
-    Bpartlen = div(length(shuffle(B)), 2)
-    B1 = B[1:Bpartlen]
+    Bpartlen = div(length(B), 2)
+    B1 = shuffle(B)[1:Bpartlen]
 
     xB1 = invert_at_indices(x, B1)
 
