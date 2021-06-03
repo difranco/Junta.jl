@@ -111,7 +111,7 @@ function check_for_juntas_adaptive_simple(f, k, ϵ, dim,
     )
 end
 
-iterations_for_error_prob = (x) -> ceil(-log(x) / (log(3)))
+@inline iterations_for_error_prob(x) = ceil(-log(x) / (log(3)))
 # alg rejects with prob 2/3 each time so 1/3 false neg rate so find (1/3)^y ≤ x
 # to find number of iterations needed to get lower prob of false negative
 
