@@ -153,7 +153,7 @@ function junta_size_adaptive_simple(
 
     for k in 1:dim
         (accept, indices) = check_for_juntas_adaptive_simple(
-            f, k, ϵ, dim, error_prob / dim, indices
+            f, k, ϵ, dim, error_prob / dim, indices, rng
         )
         if accept
             return (k, sort(collect(indices)))
