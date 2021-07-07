@@ -28,3 +28,22 @@ end
     @test k == 5
     @test foundindices == testindices
 end
+
+@testset "hard function" begin
+    testindices = [1,4,5,7,8]
+    function testfn(x::BitVector)
+        if x[9] == 1 && x[6] == 1 && x[3] == 1
+            return reduce(xor, x[testindices])
+        else
+            return 1
+        end
+    end
+    dim = 9
+    ϵ = 1e-3
+    error_prob = 1e-5
+
+    (k, foundindices) = junta_size_adaptive_simple(testfn, ϵ, dim, error_prob)
+
+    @test k == 8
+    @test foundindices == [1,3,4,5,6,7,8,9]
+end
