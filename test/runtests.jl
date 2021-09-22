@@ -1,5 +1,6 @@
 using Junta, Test
 
+# https://discourse.julialang.org/t/error-when-i-use-the-function-distribute-array-from-the-libray-distributedarrays/16015/2
 # To test parallel execution, start interpreter with many threads or
 # do this from top level: (doesn't work from in here)
 # using Distributed
