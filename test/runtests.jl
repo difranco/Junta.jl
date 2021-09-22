@@ -1,5 +1,10 @@
 using Junta, Test
 
+# To test parallel execution, start interpreter with many threads or
+# do this from top level: (doesn't work from in here)
+# using Distributed
+# julia> addprocs(Sys.CPU_THREADS)
+
 @testset "junta" begin
     testfn = (x::BitVector) -> reduce(xor, x[[3,4]])
     dim = 4

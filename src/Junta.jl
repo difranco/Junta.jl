@@ -6,6 +6,7 @@ using BitTools
 using Random
 using Combinatorics
 using Memoize
+using Distributed
 
 function junta_binary_search(f, x, y)
     # http://www.cs.columbia.edu/~rocco/Public/stoc18.pdf
@@ -38,7 +39,7 @@ function junta_binary_search(f, x, y)
     end
 
     Bpartlen = div(length(B), 2)
-    B1 = shuffle(B)[1:Bpartlen]
+    B1 = shuffle!(B)[1:Bpartlen]
 
     xB1 = invert_at_indices(x, B1)
 
@@ -60,7 +61,8 @@ function check_for_juntas_adaptive_simple(
     ϵ::Real,
     dim::Integer,
     initial_I::Set{Integer} = Set{Integer}(),
-    rng = Random.GLOBAL_RNG
+    rng = Random.GLOBAL_RNG,
+    parblocksize :: Integer = 256
     )
     # http://www.cs.columbia.edu/~rocco/Public/stoc18.pdf
     # Input: Oracle access to a Boolean function f : {0, 1}^n → {0, 1}
@@ -86,24 +88,35 @@ function check_for_juntas_adaptive_simple(
     # It rejects with probability at least 2/3
     # if f is ϵ-far from k-juntas with respect to D.
 
-    I = initial_I
+    I = copy(initial_I)
+    I_lock = ReentrantLock()
+    powerset_lock = ReentrantLock()
 
-    for i = 1:Int(cld(8(k + 1), ϵ))
-        x = D()
-        R = rand(rng, powersetdifference(dim, I))
-        @debug "I: $I, R: $R"
-        y = invert_at_indices(x, R)
+    totaltrials = Int(cld(8(k + 1), ϵ))
+    blockiterations = div(totaltrials, parblocksize)
 
-        @debug "x: $x, y: $y, f(x): $(f(x)), f(y): $(f(y)) R: $R, i: $i"
-
-        if f(x) ≠ f(y)
-            @debug "doing binary search"
-            xs, ys = junta_binary_search(f, x, y)
-            i = findall(xs .⊻ ys)
-            I = union(I, i)
-            if length(I) > k
-                return (false, I)
+    for block in 1:blockiterations
+        @sync @distributed for blockiteration = 1:blockiterations
+            x = D()
+            psdiff = Set()
+            lock(powerset_lock) do
+                psdiff = powersetdifference(dim, I)
             end
+            R = rand(rng, psdiff)
+            @debug "I: $I, R: $R"
+            y = invert_at_indices(x, R)
+
+            if f(x) ≠ f(y)
+                @debug "doing binary search"
+                xs, ys = junta_binary_search(f, x, y)
+                i = findall(xs .⊻ ys)
+                lock(I_lock) do
+                    I = union(I, i)
+                end
+            end
+        end
+        if length(I) > k
+            return (false, I)
         end
     end
 
