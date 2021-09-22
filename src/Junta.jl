@@ -62,7 +62,7 @@ function check_for_juntas_adaptive_simple(
     dim::Integer,
     initial_I::Set{Integer} = Set{Integer}(),
     rng = Random.GLOBAL_RNG,
-    parblocksize :: Integer = 256
+    parblocksize :: Integer = 8*Sys.CPU_THREADS
     )
     # http://www.cs.columbia.edu/~rocco/Public/stoc18.pdf
     # Input: Oracle access to a Boolean function f : {0, 1}^n → {0, 1}
