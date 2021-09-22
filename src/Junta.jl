@@ -5,6 +5,7 @@ export junta_size_adaptive_simple, check_for_juntas_adaptive_simple
 using BitTools
 using Random
 using Combinatorics
+using Memoize
 
 function junta_binary_search(f, x, y)
     # http://www.cs.columbia.edu/~rocco/Public/stoc18.pdf
@@ -32,6 +33,7 @@ function junta_binary_search(f, x, y)
     B = findall(x .⊻ y)
 
     if length(B) == 1
+        #TODO here is where we should log the single bit sensitivity also
         return (x, y)
     end
 
@@ -45,6 +47,10 @@ function junta_binary_search(f, x, y)
     else
         return junta_binary_search(f, xB1, y)
     end
+end
+
+@memoize function powersetdifference(dim, s)
+    return collect(powerset(setdiff(1:dim, s)))
 end
 
 function check_for_juntas_adaptive_simple(
@@ -84,7 +90,7 @@ function check_for_juntas_adaptive_simple(
 
     for i = 1:Int(cld(8(k + 1), ϵ))
         x = D()
-        R = rand(rng, collect(powerset(setdiff(1:dim, I))))
+        R = rand(rng, powersetdifference(dim, I))
         @debug "I: $I, R: $R"
         y = invert_at_indices(x, R)
 

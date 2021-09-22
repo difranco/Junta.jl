@@ -19,7 +19,7 @@ end
 @testset "auto junta size" begin
     testindices = [1,4,5,7,8]
     testfn = (x::BitVector) -> reduce(xor, x[testindices])
-    dim = 9
+    dim = 20
     ϵ = 1e-3
     error_prob = 1e-5
 
@@ -38,7 +38,7 @@ end
             return 1
         end
     end
-    dim = 9
+    dim = 20
     ϵ = 1e-3
     error_prob = 1e-5
 
