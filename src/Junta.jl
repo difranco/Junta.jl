@@ -8,6 +8,9 @@ using Combinatorics
 using Memoize
 using Distributed
 
+RNG_DEFAULT = Random.GLOBAL_RNG
+PARBLOCK_DEFAULT = 16*Sys.CPU_THREADS
+
 function junta_binary_search(f, x, y)
     # http://www.cs.columbia.edu/~rocco/Public/stoc18.pdf
     # Input: Query access to f : {0, 1}^n → {0, 1},
@@ -61,8 +64,8 @@ function check_for_juntas_adaptive_simple(
     ϵ::Real,
     dim::Integer,
     initial_I::Set{Integer} = Set{Integer}(),
-    rng = Random.GLOBAL_RNG,
-    parblocksize :: Integer = 8*Sys.CPU_THREADS
+    rng = RNG_DEFAULT,
+    parblocksize :: Integer = PARBLOCK_DEFAULT
     )
     # http://www.cs.columbia.edu/~rocco/Public/stoc18.pdf
     # Input: Oracle access to a Boolean function f : {0, 1}^n → {0, 1}
@@ -124,9 +127,10 @@ function check_for_juntas_adaptive_simple(
 end
 
 function check_for_juntas_adaptive_simple(f, k, ϵ, dim,
-    initial_I = Set{Integer}(), rng = Random.GLOBAL_RNG)
+    initial_I = Set{Integer}(), rng = RNG_DEFAULT,
+    parblocksize = PARBLOCK_DEFAULT)
     return check_for_juntas_adaptive_simple(
-        f, () -> rbitvec(dim), k, ϵ, dim, initial_I, rng
+        f, () -> rbitvec(dim), k, ϵ, dim, initial_I, rng, parblocksize
     )
 end
 
@@ -141,7 +145,8 @@ function check_for_juntas_adaptive_simple(
     dim::Integer,
     error_prob::Real,
     initial_I::Set{Integer} = Set{Integer}(),
-    rng = Random.GLOBAL_RNG
+    rng = RNG_DEFAULT,
+    parblocksize = PARBLOCK_DEFAULT
     )
 
     accept = false
@@ -149,7 +154,7 @@ function check_for_juntas_adaptive_simple(
 
     for i = 1:iterations_for_error_prob(error_prob)
         (accept, indices) = check_for_juntas_adaptive_simple(
-            f, k, ϵ, dim, indices, rng
+            f, k, ϵ, dim, indices, rng, parblocksize
         )
         if !accept
             return (accept, indices)
@@ -163,7 +168,8 @@ function junta_size_adaptive_simple(
     ϵ::Real,
     dim::Integer,
     error_prob::Real,
-    rng = Random.GLOBAL_RNG
+    rng = RNG_DEFAULT,
+    parblocksize = PARBLOCK_DEFAULT
     )
     # This variant steps up until it fails the junta test to determine junta size
     # It passes through the set of indices found so as not to lose the search state
@@ -172,7 +178,7 @@ function junta_size_adaptive_simple(
 
     for k in 1:dim
         (accept, indices) = check_for_juntas_adaptive_simple(
-            f, k, ϵ, dim, error_prob / dim, indices, rng
+            f, k, ϵ, dim, error_prob / dim, indices, rng, parblocksize
         )
         if accept
             return (k, sort(collect(indices)))
