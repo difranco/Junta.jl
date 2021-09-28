@@ -9,15 +9,15 @@ using Memoize
 using Distributed
 
 RNG_DEFAULT = Random.GLOBAL_RNG
-PARBLOCK_DEFAULT = 256*Sys.CPU_THREADS
+PARBLOCK_DEFAULT = 16*Sys.CPU_THREADS
 
 function junta_binary_search(f, x, y)
     # http://www.cs.columbia.edu/~rocco/Public/stoc18.pdf
     # Input: Query access to f : {0, 1}^n → {0, 1},
-    # and two strings x, y ∈ {0, 1}^n with f(x) ,f(y).
-    # Output: Two strings x′, y′ ∈ {0, 1}^n,
+    # and two bit vectors x, y ∈ {0, 1}^n with f(x) ,f(y).
+    # Output: Two bit vectors x′, y′ ∈ {0, 1}^n,
     # with f(x′), f(y′) and x′ = y′^(i) for some i ∈ diff(x, y).
-    # x^(i) denotes bit string x with bit(s) at position(s) i (or vector I) flipped.
+    # x^(i) denotes bit vector x with bit(s) at position(s) i (or vector I) flipped.
     # (1) Let B ⊆ [n] be the set such that x = y^(B).
     # (2) If |B| = 1, return x and y.
     # (3) Partition (arbitrarily) B into B1 and B2 of size ⌊|B|/2⌋ and ⌈|B|/2⌉,
@@ -53,6 +53,8 @@ function junta_binary_search(f, x, y)
     end
 end
 
+# lock concurrent access to this function to keep memoization safe
+powerset_lock = ReentrantLock()
 @memoize function powersetdifference(dim, s)
     return collect(powerset(setdiff(1:dim, s)))
 end
@@ -93,7 +95,6 @@ function check_for_juntas_adaptive_simple(
 
     I = copy(initial_I)
     I_lock = ReentrantLock()
-    powerset_lock = ReentrantLock()
 
     totaltrials = Int(cld(8(k + 1), ϵ))
     blockiterations = div(totaltrials, parblocksize)
