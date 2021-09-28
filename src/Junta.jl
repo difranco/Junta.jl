@@ -9,7 +9,7 @@ using Memoize
 using Distributed
 
 RNG_DEFAULT = Random.GLOBAL_RNG
-PARBLOCK_DEFAULT = 16*Sys.CPU_THREADS
+PARBLOCK_DEFAULT = 256*Sys.CPU_THREADS
 
 function junta_binary_search(f, x, y)
     # http://www.cs.columbia.edu/~rocco/Public/stoc18.pdf
@@ -97,7 +97,7 @@ function check_for_juntas_adaptive_simple(
     I_lock = ReentrantLock()
 
     totaltrials = Int(cld(8(k + 1), ϵ))
-    blockiterations = div(totaltrials, parblocksize)
+    blockiterations = max(16, div(totaltrials, parblocksize))
 
     for block in 1:blockiterations
         @sync @distributed for blockiteration = 1:blockiterations
