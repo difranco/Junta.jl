@@ -1,6 +1,7 @@
 module Junta
 
 export junta_size_adaptive_simple, check_for_juntas_adaptive_simple
+export PointwisePropertyTest, is_monotonic
 
 using BitTools
 using Random
@@ -11,7 +12,29 @@ using Distributed
 RNG_DEFAULT = Random.GLOBAL_RNG
 PARBLOCK_DEFAULT = 256*Sys.CPU_THREADS
 
-function junta_binary_search(f, x, y)
+mutable struct PointwisePropertyTest
+    test :: Function
+    # test takes the function f under study and two inputs differing in one bit
+    # and returns true iff the property holds between those inputs for f
+    log :: Vector{Tuple{BitVector, Integer, Bool}}
+    # log records input BitVector, position of the flipped bit, and whether
+    # the property tested by the "test" function held at that point
+    log_lock :: ReentrantLock
+end
+
+PointwisePropertyTest(f, l) = PointwisePropertyTest(f, l, ReentrantLock())
+PointwisePropertyTest(f) = PointwisePropertyTest(f, Vector())
+
+function is_monotonic(f :: Function, x :: BitVector, y :: BitVector)
+    (a, b) = sort([x, y])
+    if f(a) ≤ f(b)
+        return true
+    end
+    return false
+end
+
+function junta_binary_search(f :: Function, x :: BitVector, y :: BitVector,
+    testspec :: Union{PointwisePropertyTest, Nothing})
     # http://www.cs.columbia.edu/~rocco/Public/stoc18.pdf
     # Input: Query access to f : {0, 1}^n → {0, 1},
     # and two bit vectors x, y ∈ {0, 1}^n with f(x) ,f(y).
@@ -37,7 +60,12 @@ function junta_binary_search(f, x, y)
     B = findall(x .⊻ y)
 
     if length(B) == 1
-        #TODO here is where we should log the single bit sensitivity also
+        if testspec !== nothing
+            propertyholds = testspec.test(f, x, y)
+            lock(testspec.log_lock) do
+                push!(testspec.log, (x, B[1], propertyholds))
+            end
+        end
         return (x, y)
     end
 
@@ -47,9 +75,9 @@ function junta_binary_search(f, x, y)
     xB1 = invert_at_indices(x, B1)
 
     if f(xB1) ≠ f(x)
-        return junta_binary_search(f, x, xB1)
+        return junta_binary_search(f, x, xB1, testspec)
     else
-        return junta_binary_search(f, xB1, y)
+        return junta_binary_search(f, xB1, y, testspec)
     end
 end
 
@@ -60,12 +88,9 @@ powerset_lock = ReentrantLock()
 end
 
 function check_for_juntas_adaptive_simple(
-    f::Function,
-    D::Function,
-    k::Integer,
-    ϵ::Real,
-    dim::Integer,
-    initial_I::Set{Integer} = Set{Integer}(),
+    f :: Function, D :: Function, k :: Integer, ϵ :: Real, dim :: Integer,
+    initial_I :: Set{Integer} = Set{Integer}(),
+    testspec :: Union{PointwisePropertyTest, Nothing} = nothing,
     rng = RNG_DEFAULT,
     parblocksize :: Integer = PARBLOCK_DEFAULT
     )
@@ -112,7 +137,7 @@ function check_for_juntas_adaptive_simple(
 
             if f(x) ≠ f(y)
                 @debug "doing binary search"
-                xs, ys = junta_binary_search(f, x, y)
+                xs, ys = junta_binary_search(f, x, y, testspec)
                 i = findall(xs .⊻ ys)
                 lock(I_lock) do
                     I = union(I, i)
@@ -127,11 +152,13 @@ function check_for_juntas_adaptive_simple(
     return (true, I)
 end
 
-function check_for_juntas_adaptive_simple(f, k, ϵ, dim,
-    initial_I = Set{Integer}(), rng = RNG_DEFAULT,
-    parblocksize = PARBLOCK_DEFAULT)
+function check_for_juntas_adaptive_simple(
+    f :: Function, k :: Integer, ϵ :: Real, dim :: Integer,
+    initial_I = Set{Integer}(),
+    testspec :: Union{PointwisePropertyTest, Nothing} = nothing,
+    rng = RNG_DEFAULT, parblocksize :: Integer = PARBLOCK_DEFAULT)
     return check_for_juntas_adaptive_simple(
-        f, () -> rbitvec(dim), k, ϵ, dim, initial_I, rng, parblocksize
+        f, () -> rbitvec(dim), k, ϵ, dim, initial_I, testspec, rng, parblocksize
     )
 end
 
@@ -140,14 +167,11 @@ end
 # to find number of iterations needed to get lower prob of false negative
 
 function check_for_juntas_adaptive_simple(
-    f::Function,
-    k::Integer,
-    ϵ::Real,
-    dim::Integer,
-    error_prob::Real,
-    initial_I::Set{Integer} = Set{Integer}(),
+    f :: Function, k :: Integer, ϵ :: Real, dim :: Integer, error_prob :: Real,
+    initial_I :: Set{Integer} = Set{Integer}(),
+    testspec :: Union{PointwisePropertyTest, Nothing} = nothing,
     rng = RNG_DEFAULT,
-    parblocksize = PARBLOCK_DEFAULT
+    parblocksize :: Integer = PARBLOCK_DEFAULT
     )
 
     accept = false
@@ -155,7 +179,7 @@ function check_for_juntas_adaptive_simple(
 
     for i = 1:iterations_for_error_prob(error_prob)
         (accept, indices) = check_for_juntas_adaptive_simple(
-            f, k, ϵ, dim, indices, rng, parblocksize
+            f, k, ϵ, dim, indices, testspec, rng, parblocksize
         )
         if !accept
             return (accept, indices)
@@ -165,12 +189,13 @@ function check_for_juntas_adaptive_simple(
 end
 
 function junta_size_adaptive_simple(
-    f::Function,
-    ϵ::Real,
-    dim::Integer,
-    error_prob::Real,
+    f :: Function,
+    ϵ :: Real,
+    dim :: Integer,
+    error_prob :: Real,
+    testspec :: Union{PointwisePropertyTest, Nothing} = nothing,
     rng = RNG_DEFAULT,
-    parblocksize = PARBLOCK_DEFAULT
+    parblocksize :: Integer = PARBLOCK_DEFAULT
     )
     # This variant steps up until it fails the junta test to determine junta size
     # It passes through the set of indices found so as not to lose the search state
@@ -179,14 +204,14 @@ function junta_size_adaptive_simple(
 
     for k in 1:dim
         (accept, indices) = check_for_juntas_adaptive_simple(
-            f, k, ϵ, dim, error_prob / dim, indices, rng, parblocksize
+            f, k, ϵ, dim, error_prob / dim, indices, testspec, rng, parblocksize
         )
         if accept
-            return (k, sort(collect(indices)))
+            return (k, sort(collect(indices)), testspec)
         end
     end
 
-    return (dim, sort(collect(indices)))
+    return (dim, sort(collect(indices)), testspec)
 end
 
 end # module

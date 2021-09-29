@@ -29,7 +29,8 @@ end
     ϵ = 1e-3
     error_prob = 1e-5
 
-    (k, foundindices) = junta_size_adaptive_simple(testfn, ϵ, dim, error_prob)
+    (k, foundindices, testspec) = junta_size_adaptive_simple(
+        testfn, ϵ, dim, error_prob)
 
     @test k == 5
     @test foundindices == testindices
@@ -48,8 +49,30 @@ end
     ϵ = 1e-3
     error_prob = 1e-5
 
-    (k, foundindices) = junta_size_adaptive_simple(testfn, ϵ, dim, error_prob)
+    (k, foundindices, testspec) = junta_size_adaptive_simple(
+        testfn, ϵ, dim, error_prob)
 
     @test k == 8
     @test foundindices == [1,3,4,5,6,7,8,9]
+end
+
+@testset "monotonicity test" begin
+    function testfn(x::BitVector)
+        if sum(x) > 2
+            return true
+        else
+            return false
+        end
+    end
+    dim = 4
+    ϵ = 1e-3
+    error_prob = 1e-5
+
+    (k, foundindices, testspec) = junta_size_adaptive_simple(
+        testfn, ϵ, dim, error_prob,
+        PointwisePropertyTest(is_monotonic))
+
+    @test k == 4
+    @test foundindices == [1,2,3,4]
+    @test mapreduce((t) -> t[3] == true, &, testspec.log)
 end
