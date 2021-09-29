@@ -26,6 +26,8 @@ PointwisePropertyTest(f, l) = PointwisePropertyTest(f, l, ReentrantLock())
 PointwisePropertyTest(f) = PointwisePropertyTest(f, Vector())
 
 function is_monotonic(f :: Function, x :: BitVector, y :: BitVector)
+    # This test as written will only work when x and y differ by 1 bit
+    # (which is true in this context) because of use of sort.
     (a, b) = sort([x, y])
     if f(a) ≤ f(b)
         return true
