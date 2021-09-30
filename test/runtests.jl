@@ -94,8 +94,6 @@ end
         testfn, ϵ, dim, error_prob,
         PointwisePropertyTest(is_monotonic))
 
-    println(testspec.log)
-
     @test k == 4
     @test foundindices == [1,2,3,4]
     @test mapreduce((t) -> t[3] == false, &, testspec.log)
