@@ -76,3 +76,27 @@ end
     @test foundindices == [1,2,3,4]
     @test mapreduce((t) -> t[3] == true, &, testspec.log)
 end
+
+@testset "nonmonotonicity test" begin
+    function testfn(x::BitVector)
+        if sum(x) < 2
+            return true
+        else
+            return false
+        end
+    end
+
+    dim = 4
+    ϵ = 1e-3
+    error_prob = 1e-5
+
+    (k, foundindices, testspec) = junta_size_adaptive_simple(
+        testfn, ϵ, dim, error_prob,
+        PointwisePropertyTest(is_monotonic))
+
+    println(testspec.log)
+
+    @test k == 4
+    @test foundindices == [1,2,3,4]
+    @test mapreduce((t) -> t[3] == false, &, testspec.log)
+end
