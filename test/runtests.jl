@@ -1,4 +1,4 @@
-using Junta, Test
+using Junta.JuntaSearch, Junta.Properties, Test
 
 # https://discourse.julialang.org/t/error-when-i-use-the-function-distribute-array-from-the-libray-distributedarrays/16015/2
 # To test parallel execution, start interpreter with many threads or
