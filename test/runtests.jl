@@ -120,5 +120,4 @@ end
     @test k == dim
     @test foundindices == [1,2,3,4]
     @test length(testspec.log) == num_points * dim
-    println(testspec.log)
 end
