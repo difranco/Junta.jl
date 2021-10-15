@@ -168,29 +168,35 @@ function check_for_juntas_adaptive_simple(
 end
 
 function junta_size_adaptive_simple(
-    f :: Function,
-    ϵ :: Real,
-    dim :: Integer,
-    error_prob :: Real,
-    testspec :: Union{PointwisePropertyTest, Nothing} = nothing,
-    rng = RNG_DEFAULT,
-    parblocksize :: Integer = PARBLOCK_DEFAULT
+    f :: Function, # Function to test
+    ϵ :: Real, # distance parameter for test sensitivity
+    dim :: Integer, # dimension of input to test function
+    error_prob :: Real, # error bound for testing
+    testspec :: Union{PointwisePropertyTest, Nothing} = nothing, # property test
+    num_points :: Integer = 1, # number of input points to accumulate at each index
+    rng = RNG_DEFAULT, # rng to use
+    parblocksize :: Integer = PARBLOCK_DEFAULT # number of tests to run parallel
     )
     # This variant steps up until it fails the junta test to determine junta size
     # It passes through the set of indices found so as not to lose the search state
 
     indices = Set{Integer}()
+    found_k = 0
 
-    for k in 1:dim
-        (accept, indices) = check_for_juntas_adaptive_simple(
-            f, k, ϵ, dim, error_prob / dim, indices, testspec, rng, parblocksize
-        )
-        if accept
-            return (k, sort(collect(indices)), testspec)
+    for p in 1:num_points
+        indices = Set{Integer}()
+        for k in 1:dim
+            (accept, indices) = check_for_juntas_adaptive_simple(
+                f, k, ϵ, dim, error_prob / dim, indices, testspec, rng, parblocksize
+            )
+            if accept
+                found_k = k
+                break
+            end
         end
     end
 
-    return (dim, sort(collect(indices)), testspec)
+    return (found_k, sort(collect(indices)), testspec)
 end
 
 end # module JuntaSearch
