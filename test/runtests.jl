@@ -121,3 +121,28 @@ end
     @test foundindices == [1,2,3,4]
     @test length(testspec.log) == num_points * dim
 end
+
+using Junta.Fingerprint, BitTools
+
+@testset "fingerprinting" begin
+    test1(x::BitVector) = Bool(sum(x[[2,3,4]]) % 2)
+    test2(x::BitVector) = Bool(sum(x[[1,2,3,4]]) % 2)
+    test3(x::BitVector) = reduce(xor, x)
+
+    dim = 4
+    ϵ = 1e-3
+    error_prob = 1e-5
+    num_points = 128
+
+    testafn(fn) = junta_size_adaptive_simple(
+        fn, ϵ, dim, error_prob,
+        PointwisePropertyTest(is_monotonic),
+        num_points)
+
+    fingerprints = map(f -> fingerprint(testafn(f)[3]), [test1, test2, test3])
+
+    # map(println, fingerprints)
+
+    @test distance(fingerprints[1], fingerprints[2]) >
+        distance(fingerprints[2], fingerprints[3])
+end
