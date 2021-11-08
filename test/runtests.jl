@@ -143,6 +143,6 @@ using Junta.Fingerprint, BitTools
 
     # map(println, fingerprints)
 
-    @test distance(fingerprints[1], fingerprints[2]) >
+    @test distance(fingerprints[1], fingerprints[2]) <
         distance(fingerprints[2], fingerprints[3])
 end
