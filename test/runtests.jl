@@ -122,13 +122,12 @@ end
     @test length(testspec.log) == num_points * dim
 end
 
-#= Need to fix fingerprinting to work on merged logs
 using Junta.Fingerprint, BitTools
 
 @testset "fingerprinting" begin
-    test1(x::BitVector) = Bool(sum(x[[2,3,4]]) % 2)
-    test2(x::BitVector) = Bool(sum(x[[1,2,3,4]]) % 2)
-    test3(x::BitVector) = reduce(xor, x)
+    tf1(x::BitVector) = reduce(xor, x[1:2])
+    tf2(x::BitVector) = reduce(xor, x[3:4])
+    tf3(x::BitVector) = reduce(xor, x)
 
     dim = 4
     ϵ = 1e-3
@@ -138,13 +137,11 @@ using Junta.Fingerprint, BitTools
     testafn(fn) = junta_size_adaptive_simple(
         fn, ϵ, dim, error_prob,
         PointwisePropertyTest(is_monotonic),
-        num_points)
+        num_points)[3]
 
-    fingerprints = map(f -> fingerprint(testafn(f)[3]), [test1, test2, test3])
+    (t1, t2, t3) = map(f -> testafn(f), [tf1, tf2, tf3])
 
-    # map(println, fingerprints)
+    codesize = 512
 
-    @test distance(fingerprints[1], fingerprints[2]) <
-        distance(fingerprints[2], fingerprints[3])
+    @test printcompare(tf1, tf2, t1, t2, codesize) < printcompare(tf2, tf3, t2, t3, codesize)
 end
-=#
