@@ -143,5 +143,5 @@ using Junta.Fingerprint, BitTools
 
     codesize = 512
 
-    @test printcompare(tf1, tf2, t1, t2, codesize) < printcompare(tf2, tf3, t2, t3, codesize)
+    @test printcompare(tf1, tf2, t1, t2, codesize) > printcompare(tf2, tf3, t2, t3, codesize)
 end

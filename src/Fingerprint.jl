@@ -26,7 +26,8 @@ function crosstest(f :: Function,
     for pointresult in t2.log
         point = pointresult[1]
         diffbit = pointresult[2]
-        t1result = t1.test(f, copy(point), setindex!(point, 1, diffbit))
+        t1result = t1.test(f,
+            point, setindex!(copy(point), !point[diffbit], diffbit))
         push!(log, (point, diffbit, t1result))
     end
 
