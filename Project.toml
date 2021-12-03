@@ -1,7 +1,7 @@
 name = "Junta"
 uuid = "cddeebfc-85d0-449a-b46a-69f1e90da772"
 authors = ["acd "]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
