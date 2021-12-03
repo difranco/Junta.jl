@@ -20,11 +20,11 @@ version = "1.2.0"
 
 [[deps.BitTools]]
 deps = ["Clustering", "Distributions", "Random", "RandomNumbers", "StatsBase", "Test"]
-git-tree-sha1 = "3d1513fd8ec91606f6138ba2c3723281407da98b"
+git-tree-sha1 = "e5e15a8bc9da77c695b64b1a5ce720f9f14ea6bc"
 repo-rev = "master"
-repo-url = "https://github.com/difranco/BitTools.jl"
+repo-url = "https://github.com/oblivia-simplex/BitTools.jl"
 uuid = "241b95ae-9817-4b36-a40a-0f608189f837"
-version = "0.1.0"
+version = "0.1.1"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
