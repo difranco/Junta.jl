@@ -8,14 +8,20 @@ function fingerprint(t :: Vector{Tuple{BitVector, Integer, Bool}},
     codesize = nothing)
 
     logloglen = log(2, length(t))
-    occtarget = 2
+    occtarget = 32
     if codesize == nothing
-        codesize = max(64, Int(ceil(logloglen)))
+        codesize = max(8192, Int(ceil(logloglen)))
     end
     return mapreduce(o -> hypercode(o, occtarget, codesize), hypersum, t)
 end
 
 @inline printdiff(a, b) = distance(a, b)
+
+function retest(pointresult, test)
+    point = pointresult[1]
+    diffbit = pointresult[2]
+    return test(f, copy(point), setindex!(point, 1, diffbit))
+end
 
 function crosstest(f :: Function,
     t1 :: PointwisePropertyTest, t2 :: PointwisePropertyTest)
@@ -24,10 +30,14 @@ function crosstest(f :: Function,
     log = Vector{Tuple{BitVector, Integer, Bool}}()
 
     for pointresult in t2.log
+<<<<<<< HEAD
         point = pointresult[1]
         diffbit = pointresult[2]
         t1result = t1.test(f,
             point, setindex!(copy(point), !point[diffbit], diffbit))
+=======
+        t1result = retest(pointresult, t1.test)
+>>>>>>> b55e984 (Set fingerprint parameters to range with slightly more collision resistance but much better sparsity than Hawkins' (5000,100) from cortex.)
         push!(log, (point, diffbit, t1result))
     end
 
