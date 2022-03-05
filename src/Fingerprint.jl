@@ -30,14 +30,10 @@ function crosstest(f :: Function,
     log = Vector{Tuple{BitVector, Integer, Bool}}()
 
     for pointresult in t2.log
-<<<<<<< HEAD
         point = pointresult[1]
         diffbit = pointresult[2]
         t1result = t1.test(f,
             point, setindex!(copy(point), !point[diffbit], diffbit))
-=======
-        t1result = retest(pointresult, t1.test)
->>>>>>> b55e984 (Set fingerprint parameters to range with slightly more collision resistance but much better sparsity than Hawkins' (5000,100) from cortex.)
         push!(log, (point, diffbit, t1result))
     end
 
