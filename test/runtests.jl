@@ -146,3 +146,24 @@ using Junta.Fingerprint, BitTools
     @test printcompare(tf1, tf2, t1, t2, codesize) != 0
     @test printcompare(tf2, tf3, t2, t3, codesize) != 0
 end
+
+@testset "microcontroller data PAL16L8" begin
+    (f, d) = wrap_table("adt.csv", 11, 7)
+
+    mo_res = multi_output_junta(f,
+        1e-5,
+        11,
+        7,
+        0.001
+        )
+
+    println(mo_res)
+
+    @test mo_res[1][1] == 9
+    @test mo_res[2][1] == 3
+    @test mo_res[3][1] == 10
+    @test mo_res[4][1] == 8
+    @test mo_res[5][1] == 8
+    @test mo_res[6][1] == 7
+    @test mo_res[7][1] == 3
+end

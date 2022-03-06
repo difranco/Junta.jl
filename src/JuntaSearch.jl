@@ -199,4 +199,54 @@ function junta_size_adaptive_simple(
     return (found_k, sort(collect(indices)), testspec)
 end
 
+export multi_output_junta
+
+function multi_output_junta(
+    f :: Function, # Function to test, BitVector -> BitVector
+    ϵ :: Real, # distance parameter for test sensitivity
+    indim :: Integer, # dimension of input to test function
+    outdim :: Integer, # dimension of output of test function
+    error_prob :: Real, # error bound for testing
+    testspec :: Union{PointwisePropertyTest, Nothing} = nothing, # property test
+    num_points :: Integer = 1, # number of input points to accumulate at each index
+    rng = RNG_DEFAULT, # rng to use
+    parblocksize :: Integer = PARBLOCK_DEFAULT # number of tests to run parallel
+    )
+
+    results = Array{Tuple}(undef, outdim)
+
+    for j in 1:outdim
+        function oneDfunc(x :: BitVector)
+            return f(x)[j]
+        end
+
+        results[j] = junta_size_adaptive_simple(
+            oneDfunc, ϵ, indim, error_prob, testspec, num_points, rng, parblocksize
+        )
+    end
+
+    return results
+end
+
+export wrap_table
+
+using CSV
+
+function wrap_table(filename :: String, inputs :: Integer, outputs :: Integer, header = true)
+    d = Dict{BitVector, BitVector}()
+
+    outstart = inputs + 1
+    outend = inputs + outputs
+
+    for row in CSV.Rows(filename, header = header, types = Bool, reusebuffer=true)
+        invec = BitVector(map(c -> Bool(row[c]),(1:inputs)))
+        outvec = BitVector(map(c -> Bool(row[c]),(outstart:outend)))
+        d[invec] = outvec
+    end
+
+    f(input :: BitVector) = d[input]
+
+    return (f, d)
+end
+
 end # module JuntaSearch
