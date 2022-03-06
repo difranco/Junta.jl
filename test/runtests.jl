@@ -157,8 +157,6 @@ end
         0.001
         )
 
-    println(mo_res)
-
     @test mo_res[1][1] == 9
     @test mo_res[2][1] == 3
     @test mo_res[3][1] == 10
