@@ -122,7 +122,7 @@ end
     @test length(testspec.log) == num_points * dim
 end
 
-using Junta.Fingerprint, BitTools
+using Junta.Fingerprint
 
 @testset "fingerprinting" begin
     tf1(x::BitVector) = reduce(xor, x[1:2])
@@ -141,10 +141,13 @@ using Junta.Fingerprint, BitTools
 
     (t1, t2, t3) = map(f -> testafn(f), [tf1, tf2, tf3])
 
-    codesize = 512
+    # codesize = 512
 
-    @test printcompare(tf1, tf2, t1, t2, codesize) != 0
-    @test printcompare(tf2, tf3, t2, t3, codesize) != 0
+    @test printcompare(tf1, tf2, t1, t2) != 0
+    @test printcompare(tf2, tf3, t2, t3) != 0
+
+    @test printcompare(tf1, tf2, t1, t2) <
+        printcompare(tf2, tf3, t2, t3)
 end
 
 @testset "microcontroller data PAL16L8" begin

@@ -1,8 +1,7 @@
 module JuntaSearch
 
-export junta_size_adaptive_simple, check_for_juntas_adaptive_simple
+export junta_size_adaptive_simple, check_for_juntas_adaptive_simple, rbitvec
 
-using BitTools
 using ..Properties
 using Random
 using Combinatorics
@@ -11,6 +10,28 @@ using Distributed
 
 RNG_DEFAULT = Random.GLOBAL_RNG
 PARBLOCK_DEFAULT = 256*Sys.CPU_THREADS
+
+@inline function rbitvec(len :: Integer, occ :: Integer, rng = RNG_DEFAULT)
+    # Returns a random bit vector of length len
+    # with occ one bits and len-occ zero bits
+    return BitVector(shuffle!(rng, [zeros(Bool, len - occ); ones(Bool, occ)]))
+end
+
+using Distributions: Beta
+beta = Beta(5, 5)
+
+@inline function rbitvec(len :: Integer, rng = RNG_DEFAULT)
+    # Returns a random bit vector of length len
+    # and occupancy Beta(5,5) between 1 and len
+    return rbitvec(len, Int(floor(len * rand(rng, beta)) + 1))
+end
+
+@inline function invert_at_indices(x::BitVector, inds)
+    # returns copy of x with bits flipped at positions given in inds
+    out = copy(x)
+    map!(!, view(out, inds), x[inds])
+    return out
+end
 
 function junta_binary_search(f :: Function, x :: BitVector, y :: BitVector,
     testspec :: Union{PointwisePropertyTest, Nothing})
