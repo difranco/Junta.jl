@@ -7,6 +7,7 @@ using Random
 using Combinatorics
 using Memoize
 using Distributed
+using DataFrames
 
 RNG_DEFAULT = Random.GLOBAL_RNG
 PARBLOCK_DEFAULT = 256*Sys.CPU_THREADS

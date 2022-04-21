@@ -74,7 +74,7 @@ end
 
     @test k == 4
     @test foundindices == [1,2,3,4]
-    @test mapreduce((t) -> t[3] == true, &, testspec.log)
+    @test mapreduce((t) -> t[3] == true, &, eachrow(testspec.log))
 end
 
 @testset "nonmonotonicity test" begin
@@ -96,7 +96,7 @@ end
 
     @test k == 4
     @test foundindices == [1,2,3,4]
-    @test mapreduce((t) -> t[3] == false, &, testspec.log)
+    @test mapreduce((t) -> t[3] == false, &, eachrow(testspec.log))
 end
 
 @testset "multiple input point finding" begin
@@ -119,7 +119,7 @@ end
 
     @test k == dim
     @test foundindices == [1,2,3,4]
-    @test length(testspec.log) == num_points * dim
+    @test size(testspec.log, 1) == num_points * dim
 end
 
 using Junta.Fingerprint

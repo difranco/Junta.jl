@@ -5,9 +5,9 @@ export fingerprint, printdiff, printcompare
 using ..Properties, ..JuntaSearch, RandomNumbers
 using Distributions: Bernoulli
 
-function hypercode(o, setbits = 16, length = 512)
+function hypercode(o, setbits = 16, len = 512)
     localrng = Xorshifts.Xorshift64(hash(o))
-    return rbitvec(length, setbits, localrng)
+    return rbitvec(len, setbits, localrng)
 end
 
 @inline hypersum(a, b) = a .| b
@@ -15,13 +15,14 @@ end
 
 similarity(a, b) = sum(hypersum(a, b))
 
-function fingerprint(t :: Vector{Tuple{BitVector, Integer, Bool}},
-    codesize = nothing)
+using DataFrames
+
+function fingerprint(t :: DataFrame, codesize = nothing)
 
     # for Rina Panigrahy modules approach below
     # modules = [rand(Bernoulli(0.5), d, d) for _ in 1:3]
 
-    logloglen = log(2, length(t))
+    logloglen = log(2, size(t,1))
     occtarget = 2
     if codesize == nothing
         codesize = max(1024, ceil(Int, logloglen))
@@ -29,11 +30,12 @@ function fingerprint(t :: Vector{Tuple{BitVector, Integer, Bool}},
 
     code = BitVector(zeros(Bool, codesize))
 
-    for entry in t
-        hashinput = copy(entry[1])
-        point = entry[1]
-        index = entry[2]
-        result = entry[3]
+    for row in eachrow(t)
+        r = NamedTuple(row)
+        hashinput = copy(r[:inputvector])
+        point = r[:inputvector]
+        index = r[:changedindex]
+        result = r[:testresult]
 
         # max number of bits needed to represent indices in point
         bitbound = floor(Int, log(2, length(point))) + 1
@@ -63,9 +65,10 @@ function crosstest(f :: Function,
     t1 :: PointwisePropertyTest, t2 :: PointwisePropertyTest)
     # Test f with t1's test on the points in t2 and collect new log;
     # return log with new results
-    log = Vector{Tuple{BitVector, Integer, Bool}}()
+    log = DataFrame(
+        inputvector=BitVector[], changedindex=Integer[], testresult=Bool[])
 
-    for pointresult in t2.log
+    for pointresult in eachrow(t2.log)
         point = pointresult[1]
         diffbit = pointresult[2]
         t1result = t1.test(f,
