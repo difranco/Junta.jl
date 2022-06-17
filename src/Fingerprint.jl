@@ -24,7 +24,7 @@ function fingerprint(t :: DataFrame, codesize = nothing)
 
     logloglen = log(2, size(t,1))
     occtarget = 2
-    if codesize == nothing
+    if codesize === nothing
         codesize = max(1024, ceil(Int, logloglen))
     end
 
