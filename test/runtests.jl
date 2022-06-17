@@ -7,30 +7,30 @@ using Junta.JuntaSearch, Junta.Properties, Test
 # julia> addprocs(Sys.CPU_THREADS)
 
 @testset "junta" begin
-    testfn = (x::BitVector) -> reduce(xor, x[[3,4]])
+    testfn1 = (x::BitVector) -> reduce(xor, x[[3,4]])
     dim = 4
     ϵ = 1e-3
     error_prob = 1e-5
 
-    t_junta = check_for_juntas_adaptive_simple(testfn, 3, ϵ, dim, error_prob)
+    t_junta = check_for_juntas_adaptive_simple(testfn1, 3, ϵ, dim, error_prob)
     @test t_junta[1] == true
 
-    te_junta = check_for_juntas_adaptive_simple(testfn, 2, ϵ, dim, error_prob)
+    te_junta = check_for_juntas_adaptive_simple(testfn1, 2, ϵ, dim, error_prob)
     @test te_junta[1] == true
 
-    f_junta = check_for_juntas_adaptive_simple(testfn, 1, ϵ, dim, error_prob)
+    f_junta = check_for_juntas_adaptive_simple(testfn1, 1, ϵ, dim, error_prob)
     @test f_junta[1] == false
 end
 
 @testset "auto junta size" begin
     testindices = [1,4,5,7,8]
-    testfn = (x::BitVector) -> reduce(xor, x[testindices])
+    testfn2 = (x::BitVector) -> reduce(xor, x[testindices])
     dim = 20
     ϵ = 1e-3
     error_prob = 1e-5
 
     (k, foundindices, testspec) = junta_size_adaptive_simple(
-        testfn, ϵ, dim, error_prob)
+        testfn2, ϵ, dim, error_prob)
 
     @test k == 5
     @test foundindices == testindices
@@ -38,7 +38,7 @@ end
 
 @testset "hard function" begin
     testindices = [1,4,5,7,8]
-    function testfn(x::BitVector)
+    function testfn3(x::BitVector)
         if x[9] == 1 && x[6] == 1 && x[3] == 1
             return reduce(xor, x[testindices])
         else
@@ -50,14 +50,14 @@ end
     error_prob = 1e-5
 
     (k, foundindices, testspec) = junta_size_adaptive_simple(
-        testfn, ϵ, dim, error_prob)
+        testfn3, ϵ, dim, error_prob)
 
     @test k == 8
     @test foundindices == [1,3,4,5,6,7,8,9]
 end
 
 @testset "monotonicity test" begin
-    function testfn(x::BitVector)
+    function testfn4(x::BitVector)
         if sum(x) > 2
             return true
         else
@@ -69,7 +69,7 @@ end
     error_prob = 1e-5
 
     (k, foundindices, testspec) = junta_size_adaptive_simple(
-        testfn, ϵ, dim, error_prob,
+        testfn4, ϵ, dim, error_prob,
         PointwisePropertyTest(is_monotonic))
 
     @test k == 4
@@ -78,7 +78,7 @@ end
 end
 
 @testset "nonmonotonicity test" begin
-    function testfn(x::BitVector)
+    function testfn5(x::BitVector)
         if sum(x) < 2
             return true
         else
@@ -91,7 +91,7 @@ end
     error_prob = 1e-5
 
     (k, foundindices, testspec) = junta_size_adaptive_simple(
-        testfn, ϵ, dim, error_prob,
+        testfn5, ϵ, dim, error_prob,
         PointwisePropertyTest(is_monotonic))
 
     @test k == 4
@@ -100,7 +100,7 @@ end
 end
 
 @testset "multiple input point finding" begin
-    function testfn(x::BitVector)
+    function testfn6(x::BitVector)
         if sum(x) > 2
             return true
         else
@@ -113,7 +113,7 @@ end
     num_points = 20
 
     (k, foundindices, testspec) = junta_size_adaptive_simple(
-        testfn, ϵ, dim, error_prob,
+        testfn6, ϵ, dim, error_prob,
         PointwisePropertyTest(is_monotonic),
         num_points)
 
@@ -134,12 +134,12 @@ using Junta.Fingerprint
     error_prob = 1e-5
     num_points = 128
 
-    testafn(fn) = junta_size_adaptive_simple(
+    testfn7(fn) = junta_size_adaptive_simple(
         fn, ϵ, dim, error_prob,
         PointwisePropertyTest(is_monotonic),
         num_points)[3]
 
-    (t1, t2, t3) = map(f -> testafn(f), [tf1, tf2, tf3])
+    (t1, t2, t3) = map(f -> testfn7(f), [tf1, tf2, tf3])
 
     # codesize = 512
 
